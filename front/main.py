@@ -123,14 +123,16 @@ time_step = 60  # Ajustement du time_step
 X_train, y_train = create_dataset(train_data, time_step)
 X_test, y_test = create_dataset(test_data, time_step)
 
+# Add an extra feature (e.g., zeros) to make it 14 features
+additional_feature_train = np.zeros((X_train.shape[0], X_train.shape[1], 1))
+additional_feature_test = np.zeros((X_test.shape[0], X_test.shape[1], 1))
+
+X_train = np.concatenate((X_train, additional_feature_train), axis=2)
+X_test = np.concatenate((X_test, additional_feature_test), axis=2)
+
 # Reshape des données pour LSTM [samples, time steps, features]
 X_train = X_train.reshape(X_train.shape[0], X_train.shape[1], X_train.shape[2])
 X_test = X_test.reshape(X_test.shape[0], X_test.shape[1], X_test.shape[2])
-
-
-payload_train = {"data": X_train.tolist()}
-payload_test = {"data": X_test.tolist()}
-
 
 train_payload = {
     "input": X_train.tolist()
@@ -139,16 +141,18 @@ train_payload = {
 test_payload = {
     "input": X_test.tolist()
 }
-print(X_train.shape)
 
+print(X_train.shape)  # shape should be (463, 60, 14)
 
-# response_train = requests.post(API_URL, json=train_payload)
-# response_test = requests.post(API_URL, json=test_payload)
+API_URL = "https://lstm-api-ce674ddbb5fc.herokuapp.com/predict"
 
-# train_predict = response_train.json()
-# test_predict = response_test.json()
+response_train = requests.post(API_URL, json=train_payload)
+response_test = requests.post(API_URL, json=test_payload)
 
-# print("test_predict: \n", test_predict)
+train_predict = response_train.json()
+test_predict = response_test.json()
+
+print("test_predict: \n", test_predict)
 
 
 # decoded_data = urllib.parse.unquote(train_predict)
