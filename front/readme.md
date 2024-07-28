@@ -9,4 +9,4 @@ docker tag lstm-app registry.heroku.com/lstm-app/web
 docker push registry.heroku.com/lstm-app/web
 heroku container:release web -a lstm-app   
 
-app dispo ici:  https://lstm-app-deaa627f967b.herokuapp.com/predict
+app dispo ici:  https://lstm-app-deaa627f967b.herokuapp.com/dashboard

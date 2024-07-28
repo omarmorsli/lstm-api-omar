@@ -109,7 +109,7 @@ def plot_predictions(train_actual: np.ndarray, train_predict: List[float], test_
 
     return train_html, test_html
 
-@app.get("/predict", response_class=HTMLResponse)
+@app.get("/dashboard", response_class=HTMLResponse)
 def predict():
     data = load_and_preprocess_data(CSV_FILE_PATH)
     data = add_features(data)
