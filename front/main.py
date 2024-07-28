@@ -6,12 +6,14 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import StandardScaler
 from statsmodels.tsa.seasonal import seasonal_decompose
 import plotly.graph_objects as go
+import urllib.parse
+import re
 
 
-API_URL = "https://eurzmw-lstm-api-b6c5517e6ded.herokuapp.com/predict"
+API_URL = "https://lstm-api-ce674ddbb5fc.herokuapp.com/predict"
 
 
-eurzmw_data = pd.read_csv("EURZMW=X.csv")
+eurzmw_data = pd.read_csv("EURLBPX2.csv")
 
 eurzmw_data.dropna(inplace=True)
 eurzmw_data["Date"] = pd.to_datetime(eurzmw_data["Date"])
@@ -137,58 +139,46 @@ response_test = requests.post(API_URL, data=payload_test, headers=headers)
 train_predict = response_train.json()['detail'][0]['ctx']['doc']
 test_predict = response_test.json()['detail'][0]['ctx']['doc']
 
-import urllib.parse
 
-def decode_predictions(encoded_str):
-    # Extract the relevant part of the string
-    encoded_str = encoded_str.split('%2C+')[1]
-    # Decode the URL-encoded string
-    decoded_str = urllib.parse.unquote(encoded_str)
-    # Remove unwanted characters and split into a list of strings
-    cleaned_str = decoded_str.replace(']', '').replace('[', '')
-    string_values = cleaned_str.split('%2C+')
-    # Convert to list of floats
-    return [float(val) for val in string_values]
+# decoded_data = urllib.parse.unquote(train_predict)
+# numbers = re.findall(r"[\d\.]+", decoded_data)
+# floats = [float(x) for x in numbers]
+# print(decoded_data)
 
-train_predict = decode_predictions(train_predict)
-test_predict = decode_predictions(test_predict)
-
-print(test_predict)
 
 # Replace plt.plot with plotly
-fig = go.Figure()
+# fig = go.Figure()
 
-# Add real values
-fig.add_trace(go.Scatter(
-    x=eurzmw_data.index,
-    y=eurzmw_data['Close'],
-    mode='lines',
-    name='Valeurs Réelles'
-))
+# # Add real values
+# fig.add_trace(go.Scatter(
+#     x=eurzmw_data.index,
+#     y=eurzmw_data['Close'],
+#     mode='lines',
+#     name='Valeurs Réelles'
+# ))
 
-# Add train predictions
-fig.add_trace(go.Scatter(
-    x=eurzmw_data.index[time_step:len(train_predict) + time_step],
-    y=train_predict,
-    mode='lines',
-    name='Prédictions Train'
-))
+# # Add train predictions
+# fig.add_trace(go.Scatter(
+#     x=eurzmw_data.index[time_step:len(train_predict) + time_step],
+#     y=train_predict,
+#     mode='lines',
+#     name='Prédictions Train'
+# ))
 
-# Add test predictions
-fig.add_trace(go.Scatter(
-    x=eurzmw_data.index[len(train_predict) + (2 * time_step) + 1:len(train_predict) + (2 * time_step) + 1 + len(test_predict)],
-    y=test_predict,
-    mode='lines',
-    name='Prédictions Test'
-))
+# # Add test predictions
+# fig.add_trace(go.Scatter(
+#     x=eurzmw_data.index[len(train_predict) + (2 * time_step) + 1:len(train_predict) + (2 * time_step) + 1 + len(test_predict)],
+#     y=test_predict,
+#     mode='lines',
+#     name='Prédictions Test'
+# ))
 
-# Set title and labels
-fig.update_layout(
-    title='Prédictions du Modèle LSTM',
-    xaxis_title='Date',
-    yaxis_title='Prix de Clôture',
-    legend_title='Légende'
-)
+# # Set title and labels
+# fig.update_layout(
+#     title='Prédictions du Modèle LSTM',
+#     xaxis_title='Date',
+#     yaxis_title='Prix de Clôture',
+#     legend_title='Légende'
+# )
 
-# Show plot
-fig.show()
+# fig.show()

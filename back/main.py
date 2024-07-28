@@ -7,7 +7,8 @@ import numpy as np
 
 app = FastAPI()
 
-model_path = 'models/eurlbp_lstm_model.h5'
+model_path = 'eurlbp_lstm_model.h5'
+
 model = load_model(model_path)
 
 class PredictRequest(BaseModel):
