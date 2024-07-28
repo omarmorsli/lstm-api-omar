@@ -15,7 +15,7 @@ class PredictRequest(BaseModel):
 def preprocess_input(input_data, time_steps=60):
     input_array = np.array(input_data)
     if input_array.shape[1:] != (time_steps, 14):
-        raise ValueError("Input array must have shape (samples, 60, 13)")
+        raise ValueError("Input array must have shape (samples, 60, 14)")
     return input_array
 
 @app.post("/predict")

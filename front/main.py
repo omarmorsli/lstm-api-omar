@@ -133,24 +133,22 @@ payload_test = {"data": X_test.tolist()}
 
 
 train_payload = {
-    "input": [
-        X_train.tolist()
-    ]
+    "input": X_train.tolist()
 }
 
 test_payload = {
-    "input": [
-        X_test.tolist()
-    ]
+    "input": X_test.tolist()
 }
+print(X_train.shape)
 
-response_train = requests.post(API_URL, json=train_payload)
-response_test = requests.post(API_URL, json=test_payload)
 
-train_predict = response_train.json()
-test_predict = response_test.json()
+# response_train = requests.post(API_URL, json=train_payload)
+# response_test = requests.post(API_URL, json=test_payload)
 
-print("test_predict: \n", test_predict)
+# train_predict = response_train.json()
+# test_predict = response_test.json()
+
+# print("test_predict: \n", test_predict)
 
 
 # decoded_data = urllib.parse.unquote(train_predict)
