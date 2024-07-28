@@ -1,10 +1,10 @@
 import requests
 
-url = "http://127.0.0.1:8000/predict"
+url = "https://lstm-api-ce674ddbb5fc.herokuapp.com/predict"
 
 sample_input = {
     "input": [
-        [[0.1]*13]*60
+        [[0.1]*14]*60
     ]
 }
 

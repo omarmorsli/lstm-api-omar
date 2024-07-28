@@ -131,13 +131,26 @@ X_test = X_test.reshape(X_test.shape[0], X_test.shape[1], X_test.shape[2])
 payload_train = {"data": X_train.tolist()}
 payload_test = {"data": X_test.tolist()}
 
-headers = {"Content-Type": "application/json"}
 
-response_train = requests.post(API_URL, data=payload_train, headers=headers)
-response_test = requests.post(API_URL, data=payload_test, headers=headers)
+train_payload = {
+    "input": [
+        X_train.tolist()
+    ]
+}
 
-train_predict = response_train.json()['detail'][0]['ctx']['doc']
-test_predict = response_test.json()['detail'][0]['ctx']['doc']
+test_payload = {
+    "input": [
+        X_test.tolist()
+    ]
+}
+
+response_train = requests.post(API_URL, json=train_payload)
+response_test = requests.post(API_URL, json=test_payload)
+
+train_predict = response_train.json()
+test_predict = response_test.json()
+
+print("test_predict: \n", test_predict)
 
 
 # decoded_data = urllib.parse.unquote(train_predict)
