@@ -7,7 +7,8 @@ from statsmodels.tsa.seasonal import seasonal_decompose
 from typing import Tuple, List, Dict, Any
 import plotly.express as px
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse
+import plotly
 import json
 
 API_URL = "https://lstm-api-ce674ddbb5fc.herokuapp.com/predict"
@@ -103,12 +104,12 @@ def plot_predictions(train_actual: np.ndarray, train_predict: List[float], test_
     fig_test = px.line(test_df, x='Time', y=['Actual', 'Predicted'], title='Actual vs. Predicted Prices - Testing Data')
     fig_test.update_layout(yaxis_title='Normalized Price', xaxis_title='Time')
 
-    train_json = json.dumps(fig_train, cls=plotly.utils.PlotlyJSONEncoder)
-    test_json = json.dumps(fig_test, cls=plotly.utils.PlotlyJSONEncoder)
+    train_html = fig_train.to_html(full_html=False)
+    test_html = fig_test.to_html(full_html=False)
 
-    return train_json, test_json
+    return train_html, test_html
 
-@app.get("/predict")
+@app.get("/predict", response_class=HTMLResponse)
 def predict():
     data = load_and_preprocess_data(CSV_FILE_PATH)
     data = add_features(data)
@@ -134,9 +135,23 @@ def predict():
     train_actual = scaled_data[:train_size, 0]
     test_actual = scaled_data[train_size:, 0]
 
-    train_json, test_json = plot_predictions(train_actual, train_predict, test_actual, test_predict, TIME_STEP)
+    train_html, test_html = plot_predictions(train_actual, train_predict, test_actual, test_predict, TIME_STEP)
 
-    return JSONResponse(content={"train_plot": train_json, "test_plot": test_json})
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Predictions</title>
+    </head>
+    <body>
+        <h1>Training Data</h1>
+        {train_html}
+        <h1>Testing Data</h1>
+        {test_html}
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
 
 if __name__ == "__main__":
     import uvicorn
