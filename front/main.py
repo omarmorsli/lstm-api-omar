@@ -6,22 +6,17 @@ from sklearn.preprocessing import MinMaxScaler
 from statsmodels.tsa.seasonal import seasonal_decompose
 from typing import Tuple, List, Dict, Any
 import plotly.express as px
-import streamlit as st
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+import json
 
 API_URL = "https://lstm-api-ce674ddbb5fc.herokuapp.com/predict"
 CSV_FILE_PATH = "EURLBPX2.csv"
-TIME_STEP = 60
+TIME_STEP = 60  # Adjust as needed
+
+app = FastAPI()
 
 def load_and_preprocess_data(file_path: str) -> pd.DataFrame:
-    """
-    Load and preprocess the data from a CSV file.
-
-    Args:
-        file_path (str): Path to the CSV file.
-
-    Returns:
-        pd.DataFrame: Preprocessed data.
-    """
     data = pd.read_csv(file_path)
     data.dropna(inplace=True)
     data["Date"] = pd.to_datetime(data["Date"])
@@ -29,15 +24,6 @@ def load_and_preprocess_data(file_path: str) -> pd.DataFrame:
     return data
 
 def add_features(data: pd.DataFrame) -> pd.DataFrame:
-    """
-    Add technical indicators and time series decomposition features to the data.
-
-    Args:
-        data (pd.DataFrame): Input data.
-
-    Returns:
-        pd.DataFrame: Data with added features.
-    """
     data["Log Returns"] = np.log(data["Close"] / data["Close"].shift(1))
     data["3D MA"] = data["Close"].rolling(window=3).mean()
     data["7D MA"] = data["Close"].rolling(window=7).mean()
@@ -68,47 +54,17 @@ def add_features(data: pd.DataFrame) -> pd.DataFrame:
     return data
 
 def normalize_data(data: pd.DataFrame, features: List[str]) -> np.ndarray:
-    """
-    Normalize the data using MinMaxScaler.
-
-    Args:
-        data (pd.DataFrame): Input data.
-        features (List[str]): List of features to normalize.
-
-    Returns:
-        np.ndarray: Normalized data.
-    """
     scaler = MinMaxScaler(feature_range=(0, 1))
     scaled_data = scaler.fit_transform(data[features])
     return scaled_data
 
 def split_data(data: np.ndarray, train_ratio: float = 0.8) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Split the data into training and testing sets.
-
-    Args:
-        data (np.ndarray): Input data.
-        train_ratio (float): Ratio of training data. Default is 0.8.
-
-    Returns:
-        Tuple[np.ndarray, np.ndarray]: Training and testing data.
-    """
     train_size = int(len(data) * train_ratio)
     train_data = data[:train_size]
     test_data = data[train_size:]
     return train_data, test_data
 
 def create_dataset(dataset: np.ndarray, time_step: int) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Create dataset for LSTM with the specified time step.
-
-    Args:
-        dataset (np.ndarray): Input data.
-        time_step (int): Number of time steps.
-
-    Returns:
-        Tuple[np.ndarray, np.ndarray]: Features (X) and targets (Y).
-    """
     X, Y = [], []
     for i in range(len(dataset) - time_step - 1):
         X.append(dataset[i : (i + time_step)])
@@ -116,46 +72,16 @@ def create_dataset(dataset: np.ndarray, time_step: int) -> Tuple[np.ndarray, np.
     return np.array(X), np.array(Y)
 
 def add_additional_feature(X: np.ndarray) -> np.ndarray:
-    """
-    Add an additional feature (zeros) to the dataset.
-
-    Args:
-        X (np.ndarray): Input features.
-
-    Returns:
-        np.ndarray: Features with additional feature.
-    """
     additional_feature = np.zeros((X.shape[0], X.shape[1], 1))
     X = np.concatenate((X, additional_feature), axis=2)
     return X
 
 def get_predictions(api_url: str, payload: Dict[str, Any]) -> List[float]:
-    """
-    Get predictions from the API.
-
-    Args:
-        api_url (str): URL of the API.
-        payload (Dict[str, Any]): Payload to send to the API.
-
-    Returns:
-        List[float]: Predictions from the API.
-    """
     response = requests.post(api_url, json=payload)
     predictions = response.json()['prediction']
     return [item[0] for item in predictions]
 
-def plot_predictions(train_actual: np.ndarray, train_predict: List[float], test_actual: np.ndarray, test_predict: List[float], time_step: int):
-    """
-    Plot the actual vs. predicted values for training and testing sets using Plotly Express.
-
-    Args:
-        train_actual (np.ndarray): Actual training data.
-        train_predict (List[float]): Predicted training data.
-        test_actual (np.ndarray): Actual testing data.
-        test_predict (List[float]): Predicted testing data.
-        time_step (int): Number of time steps used in the LSTM.
-    """
-    # Adjust lengths of the arrays to match the predictions
+def plot_predictions(train_actual: np.ndarray, train_predict: List[float], test_actual: np.ndarray, test_predict: List[float], time_step: int) -> Tuple[str, str]:
     train_actual = train_actual[time_step:time_step + len(train_predict)]
     test_actual = test_actual[:len(test_predict)]
     
@@ -171,21 +97,19 @@ def plot_predictions(train_actual: np.ndarray, train_predict: List[float], test_
         'Predicted': test_predict
     })
 
-    # Plot training data
     fig_train = px.line(train_df, x='Time', y=['Actual', 'Predicted'], title='Actual vs. Predicted Prices - Training Data')
     fig_train.update_layout(yaxis_title='Normalized Price', xaxis_title='Time')
 
-    # Plot testing data
     fig_test = px.line(test_df, x='Time', y=['Actual', 'Predicted'], title='Actual vs. Predicted Prices - Testing Data')
     fig_test.update_layout(yaxis_title='Normalized Price', xaxis_title='Time')
 
-    return fig_train, fig_test
+    train_json = json.dumps(fig_train, cls=plotly.utils.PlotlyJSONEncoder)
+    test_json = json.dumps(fig_test, cls=plotly.utils.PlotlyJSONEncoder)
 
-# Streamlit app
-def main():
-    st.title("Forex Price Prediction: EUR LBP")
+    return train_json, test_json
 
-    # Load and preprocess data
+@app.get("/predict")
+def predict():
     data = load_and_preprocess_data(CSV_FILE_PATH)
     data = add_features(data)
 
@@ -210,10 +134,10 @@ def main():
     train_actual = scaled_data[:train_size, 0]
     test_actual = scaled_data[train_size:, 0]
 
-    fig_train, fig_test = plot_predictions(train_actual, train_predict, test_actual, test_predict, TIME_STEP)
+    train_json, test_json = plot_predictions(train_actual, train_predict, test_actual, test_predict, TIME_STEP)
 
-    st.plotly_chart(fig_train)
-    st.plotly_chart(fig_test)
+    return JSONResponse(content={"train_plot": train_json, "test_plot": test_json})
 
 if __name__ == "__main__":
-    main()
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
