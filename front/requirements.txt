@@ -1,0 +1,8 @@
+requests
+pandas
+numpy
+ta
+scikit-learn
+statsmodels
+plotly
+streamlit
